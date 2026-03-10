@@ -1,0 +1,1796 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>兼职工时与收入面板</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #05070b;
+      --card: rgba(8, 11, 18, 0.84);
+      --card-2: rgba(10, 14, 22, 0.92);
+      --text: #f3f6fb;
+      --muted: #8b97ab;
+      --line: rgba(255, 255, 255, 0.08);
+      --line-strong: rgba(255, 255, 255, 0.14);
+      --shadow: 0 14px 40px rgba(0, 0, 0, 0.35);
+      --radius: 24px;
+      --blue: #2b6fff;
+      --blue-soft: rgba(43, 111, 255, 0.14);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(circle at center, rgba(48,64,97,0.22), transparent 28%),
+        radial-gradient(circle at top left, rgba(255,255,255,0.05), transparent 18%),
+        linear-gradient(90deg, #11161f 0%, #1c2430 18%, #0b0f16 35%, #07090d 50%, #0b0f16 65%, #1c2430 82%, #11161f 100%);
+      color: var(--text);
+    }
+
+    .wrap {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 18px auto;
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 20px;
+      align-items: start;
+    }
+
+    .main,
+    .main > *,
+    .panel,
+    .card,
+    .hero,
+    .chart-card,
+    .cards {
+      min-width: 0;
+    }
+
+    .panel, .card {
+      background: var(--card);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel { padding: 22px; }
+
+    .sidebar {
+      position: sticky;
+      top: 16px;
+      height: fit-content;
+    }
+
+    .title {
+      font-size: 28px;
+      font-weight: 800;
+      margin: 0 0 8px;
+      letter-spacing: -0.03em;
+    }
+
+    .desc {
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.7;
+      margin: 0 0 18px;
+    }
+
+    .group {
+      margin-bottom: 16px;
+      padding: 16px;
+      border-radius: 18px;
+      background: rgba(255,255,255,0.015);
+      border: 1px solid var(--line);
+    }
+
+    .group h3 {
+      margin: 0 0 12px;
+      font-size: 14px;
+      color: #c9d3e4;
+    }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .grid3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 12px;
+      min-width: 0;
+    }
+
+    .field:last-child { margin-bottom: 0; }
+
+    label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    input, button {
+      border: 1px solid var(--line);
+      outline: none;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.02);
+      color: var(--text);
+      font-size: 14px;
+      transition: all .22s ease;
+      min-width: 0;
+    }
+
+    input { padding: 12px 14px; }
+
+    input:focus {
+      border-color: rgba(43,111,255,0.45);
+      box-shadow: 0 0 0 3px rgba(43,111,255,0.10);
+    }
+
+    .weekend {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .weekend label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--line);
+      color: #d4ddec;
+      cursor: pointer;
+      font-size: 13px;
+      user-select: none;
+    }
+
+    .weekend input { display: none; }
+
+    .weekend label.checked {
+      background: rgba(43,111,255,0.18);
+      color: #fff;
+      border-color: rgba(43,111,255,0.52);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .actions, .auth-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    button {
+      padding: 12px 14px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.22);
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .primary {
+      background: linear-gradient(180deg, rgba(31,64,130,1), rgba(19,42,93,1));
+      color: #fff;
+      border-color: rgba(86,135,255,0.35);
+    }
+
+    .secondary {
+      background: rgba(255,255,255,0.02);
+      color: #e8edf7;
+    }
+
+    .main {
+      display: grid;
+      gap: 20px;
+      min-width: 0;
+    }
+
+    .hero {
+      padding: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+      gap: 18px;
+      align-items: stretch;
+      overflow: hidden;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #b8c3d8;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      margin-bottom: 14px;
+    }
+
+    .big {
+      font-size: clamp(34px, 5vw, 62px);
+      line-height: 1;
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      margin: 0 0 12px;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .subbig {
+      font-size: 15px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .mini {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      min-width: 0;
+    }
+
+    .mini .k {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .mini .v {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .hero-right {
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .clock {
+      font-size: 14px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .money-now {
+      font-size: clamp(34px, 4vw, 54px);
+      font-weight: 800;
+      letter-spacing: -0.05em;
+      margin: 6px 0 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .timeline {
+      height: 12px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .timeline-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #6f99ff, #8ab3ff);
+      transition: width .35s ease;
+    }
+
+    .timeline-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      gap: 12px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 16px;
+      width: 100%;
+      overflow: hidden;
+    }
+
+    .card {
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .card .k {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .card .v {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      margin-bottom: 8px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .card .s {
+      font-size: 12px;
+      color: #7f8a9b;
+      line-height: 1.6;
+    }
+
+    .chart-card {
+      padding: 22px;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .chart-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .chart-title {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .chart-sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .calendar-top { align-items: center; }
+
+    .month-card {
+      background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 18px;
+      overflow: hidden;
+      min-width: 0;
+    }
+
+    .month-nav {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      min-width: 0;
+    }
+
+    .month-btn { min-width: 108px; }
+
+    .month-indicator {
+      min-width: 120px;
+      text-align: center;
+      padding: 10px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--line);
+      font-weight: 700;
+      font-size: 14px;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .workday-calendar {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .workday-grid {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .workday-header {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 10px;
+      min-width: 0;
+    }
+
+    .workday-header span {
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+      padding: 8px 0;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.025);
+    }
+
+    .date-cell {
+      min-height: 72px;
+      width: 100%;
+      border-radius: 18px;
+      border: 1px solid rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.01);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      font-size: 15px;
+      user-select: none;
+      transition: all .18s ease;
+      min-width: 0;
+    }
+
+    .date-cell:hover {
+      transform: translateY(-2px);
+      border-color: rgba(255,255,255,0.09);
+    }
+
+    .date-cell.active {
+      background: rgba(32,74,163,0.36);
+      color: #fff;
+      border-color: rgba(94,145,255,0.46);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .date-cell.muted { opacity: .55; }
+
+    .date-cell.selected {
+      box-shadow:
+        0 0 0 2px rgba(114,158,255,0.34),
+        inset 0 0 0 1px rgba(255,255,255,0.04);
+    }
+
+    .date-cell.empty {
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .date-cell em {
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      font-style: normal;
+      font-size: 10px;
+      opacity: .72;
+    }
+
+    .date-cell strong {
+      position: absolute;
+      left: 8px;
+      top: 8px;
+      font-size: 10px;
+      font-weight: 700;
+      opacity: .86;
+    }
+
+    .day-editor {
+      background: rgba(255,255,255,0.015);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    .day-editor-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      color: #d3dcee;
+      font-size: 12px;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: "tnum";
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .tiny {
+      font-size: 12px;
+      color: #7f8a9b;
+    }
+
+    .editor-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .bars-shell {
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      overflow: hidden;
+      border-radius: 18px;
+    }
+
+    .bars {
+      height: 200px;
+      width: 100%;
+      max-width: 100%;
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: 10px;
+      align-items: end;
+      gap: 8px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding-bottom: 6px;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      min-width: 0;
+      contain: inline-size;
+    }
+
+    .bars::-webkit-scrollbar { display: none; }
+
+    .bar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .bar {
+      width: 100%;
+      min-height: 4px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #85a5ff, #d2dcff);
+      opacity: 0.92;
+      transform-origin: bottom;
+      animation: rise .55s ease both;
+    }
+
+    .bar.off { background: rgba(255,255,255,0.16); }
+    .bar.today { box-shadow: 0 10px 20px rgba(137,165,255,0.22); }
+
+    .day {
+      font-size: 11px;
+      color: #8d98aa;
+    }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 16px;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      vertical-align: -1px;
+    }
+
+    .footer-note {
+      text-align: center;
+      color: #7f8a9b;
+      font-size: 12px;
+      padding-bottom: 10px;
+    }
+
+    .status {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      min-height: 18px;
+    }
+
+    .hidden { display: none !important; }
+
+    @keyframes rise {
+      from { transform: scaleY(.2); opacity: .3; }
+      to { transform: scaleY(1); opacity: .92; }
+    }
+
+    @media (max-width: 1080px) {
+      .wrap { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .hero { grid-template-columns: 1fr; }
+      .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .wrap {
+        width: min(100vw - 18px, 1180px);
+        margin: 10px auto 20px;
+      }
+
+      .cards,
+      .grid2,
+      .grid3,
+      .kv,
+      .actions,
+      .editor-actions,
+      .auth-actions {
+        grid-template-columns: 1fr;
+      }
+
+      .weekend { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+      .cards { grid-template-columns: 1fr; }
+      .big { font-size: 40px; }
+
+      .month-nav {
+        width: 100%;
+        justify-content: space-between;
+      }
+
+      .month-btn {
+        min-width: 0;
+        flex: 1;
+      }
+
+      .month-indicator {
+        width: 100%;
+        order: -1;
+      }
+
+      .date-cell {
+        min-height: 58px;
+        font-size: 14px;
+        border-radius: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel sidebar">
+      <h1 class="title">兼职工时与收入面板</h1>
+      <p class="desc">支持账号登录、自动登录、云端同步，多设备可访问同一份数据。</p>
+
+      <div class="group">
+        <h3>账号</h3>
+        <div id="authLoggedOut">
+          <div class="field">
+            <label for="email">邮箱</label>
+            <input id="email" type="email" placeholder="you@example.com" />
+          </div>
+          <div class="field">
+            <label for="password">密码</label>
+            <input id="password" type="password" placeholder="至少 6 位" />
+          </div>
+          <div class="auth-actions">
+            <button class="primary" id="registerBtn">注册</button>
+            <button class="secondary" id="loginBtn">登录</button>
+          </div>
+        </div>
+        <div id="authLoggedIn" class="hidden">
+          <div class="field">
+            <label>当前账号</label>
+            <input id="currentUserEmail" type="text" readonly />
+          </div>
+          <div class="auth-actions">
+            <button class="primary" id="syncBtn">同步到云端</button>
+            <button class="secondary" id="logoutBtn">退出登录</button>
+          </div>
+        </div>
+        <div class="status" id="authStatus"></div>
+      </div>
+
+      <div class="group">
+        <h3>基础参数</h3>
+        <div class="field">
+          <label for="rate">时薪（¥ / 小时）</label>
+          <input id="rate" type="number" min="0" step="0.01" />
+        </div>
+        <div class="grid2">
+          <div class="field">
+            <label for="workStart">默认上班时间</label>
+            <input id="workStart" type="time" />
+          </div>
+          <div class="field">
+            <label for="workEnd">默认下班时间</label>
+            <input id="workEnd" type="time" />
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>午休参数</h3>
+        <div class="grid2">
+          <div class="field">
+            <label for="breakStart">午休开始</label>
+            <input id="breakStart" type="time" />
+          </div>
+          <div class="field">
+            <label for="breakEnd">午休结束</label>
+            <input id="breakEnd" type="time" />
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>结算周期</h3>
+        <div class="grid2">
+          <div class="field">
+            <label for="periodStart">开始日期</label>
+            <input id="periodStart" type="date" />
+          </div>
+          <div class="field">
+            <label for="periodEnd">结束日期</label>
+            <input id="periodEnd" type="date" />
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h3>默认休息日</h3>
+        <div class="weekend" id="weekendBox"></div>
+      </div>
+
+      <div class="actions">
+        <button class="primary" id="saveBtn">保存设置</button>
+        <button class="secondary" id="resetBtn">恢复默认</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="hero panel">
+        <div>
+          <div class="eyebrow">秒级更新</div>
+          <h2 class="big" id="todayHours">00:00:00</h2>
+
+          <div class="kv">
+            <div class="mini">
+              <div class="k">今日收入</div>
+              <div class="v" id="todayMoney">¥0.00</div>
+            </div>
+            <div class="mini">
+              <div class="k">今日进度</div>
+              <div class="v" id="todayProgress">0%</div>
+            </div>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div>
+            <div class="clock" id="nowText">--</div>
+            <div class="money-now" id="periodMoneyBig">¥0.00</div>
+            <div class="subbig" style="margin:10px 0 0; font-size:14px;">当前周期累计收入</div>
+          </div>
+          <div>
+            <div class="timeline">
+              <div class="timeline-bar" id="timelineBar"></div>
+            </div>
+            <div class="timeline-text">
+              <span>今日工作进度</span>
+              <span id="timelineLabel">0%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="cards">
+        <div class="card">
+          <div class="k">当前周期收入</div>
+          <div class="v" id="periodMoney">¥0.00</div>
+          <div class="s">只统计你在当前周期内勾选的上班日期</div>
+        </div>
+        <div class="card">
+          <div class="k">当前周期总工时</div>
+          <div class="v" id="periodHours">0.00</div>
+          <div class="s">单位：小时</div>
+        </div>
+        <div class="card">
+          <div class="k">已选上班天数</div>
+          <div class="v" id="periodDays">0</div>
+          <div class="s">未来已勾选日期暂不计入已完成收入</div>
+        </div>
+        <div class="card">
+          <div class="k">上班日均收入</div>
+          <div class="v" id="avgMoney">¥0.00</div>
+          <div class="s">按已发生且已勾选的上班日平均</div>
+        </div>
+        <div class="card">
+          <div class="k">当前周期日均工时</div>
+          <div class="v" id="dailyStandard">0.00</div>
+          <div class="s">按已工作天数平均</div>
+        </div>
+      </section>
+
+      <section class="panel chart-card">
+        <div class="chart-top calendar-top">
+          <div>
+            <h3 class="chart-title">实际上班日选择</h3>
+            <p class="chart-sub">点击日期选中；再次点击已选中的日期，可切换是否上班。长周期按月份分页浏览，不再拉长页面。</p>
+          </div>
+
+          <div class="month-nav">
+            <button class="secondary month-btn" id="prevMonthBtn">← 上个月</button>
+            <div class="month-indicator" id="monthIndicator">--</div>
+            <button class="secondary month-btn" id="nextMonthBtn">下个月 →</button>
+          </div>
+        </div>
+
+        <div class="workday-calendar month-card">
+          <div id="datePickerGrid"></div>
+        </div>
+      </section>
+
+      <section class="panel chart-card">
+        <div class="chart-top">
+          <div>
+            <h3 class="chart-title">单日上下班设置</h3>
+            <p class="chart-sub">当前选中日期可单独设置。留空或恢复默认后，会重新使用左侧默认上下班时间。</p>
+          </div>
+        </div>
+        <div class="day-editor">
+          <div class="day-editor-head">
+            <div>
+              <div class="tag" id="selectedDateText">未选择日期</div>
+            </div>
+            <div class="tiny" id="selectedDateHint">先点击上方某个日期</div>
+          </div>
+          <div class="grid3">
+            <div class="field">
+              <label for="dayWorkStart">该日上班时间</label>
+              <input id="dayWorkStart" type="time" />
+            </div>
+            <div class="field">
+              <label for="dayWorkEnd">该日下班时间</label>
+              <input id="dayWorkEnd" type="time" />
+            </div>
+            <div class="field">
+              <label for="dayPreview">该日预计工时</label>
+              <input id="dayPreview" type="text" readonly />
+            </div>
+          </div>
+          <div class="editor-actions">
+            <button class="primary" id="applyDayBtn">保存该日时间</button>
+            <button class="secondary" id="clearDayBtn">恢复该日默认</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel chart-card">
+        <div class="chart-top">
+          <div>
+            <h3 class="chart-title">当前周期每日收入</h3>
+            <p class="chart-sub">未勾选日期、未来日期都会显示为低亮度；设置了单日时间的日期左上角会显示“自”。</p>
+          </div>
+        </div>
+
+        <div class="bars-shell">
+          <div class="bars" id="bars"></div>
+        </div>
+
+        <div class="legend">
+          <span><span class="dot" style="background:#9bb6ff"></span>已选上班日</span>
+          <span><span class="dot" style="background:rgba(255,255,255,0.16)"></span>未选 / 未来</span>
+          <span><span class="dot" style="background:#d7e1ff"></span>今日</span>
+        </div>
+      </section>
+
+      <div class="footer-note">Shimu v1.0.4</div>
+    </main>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://sivrondtgdrjtwqztbrx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNpdnJvbmR0Z2RyanR3cXp0YnJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjI0NTEsImV4cCI6MjA4ODYzODQ1MX0.yuIvT4qw3IExnoFCgrKvBVwuxuzJG9M6U5HQ2n08Ges';
+
+    const LOCAL_CACHE_KEY = 'part_time_dashboard_settings_v5_cache';
+    const WEEK_NAMES = ['日', '一', '二', '三', '四', '五', '六'];
+
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function toDateString(date) {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      const d = String(date.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function addDays(dateStr, delta) {
+      const d = new Date(dateStr + 'T00:00:00');
+      d.setDate(d.getDate() + delta);
+      return toDateString(d);
+    }
+
+    function pad2(n) {
+      return String(n).padStart(2, '0');
+    }
+
+    function formatClockHMS(totalHours) {
+      const totalSeconds = Math.max(0, Math.floor(totalHours * 3600));
+      const h = Math.floor(totalSeconds / 3600);
+      const m = Math.floor((totalSeconds % 3600) / 60);
+      const s = totalSeconds % 60;
+      return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
+    }
+
+    function formatDateTime(now) {
+      return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+    }
+
+    const todayStr = toDateString(new Date());
+
+    const DEFAULTS = {
+      rate: 15,
+      workStart: '09:00',
+      workEnd: '18:30',
+      breakStart: '12:00',
+      breakEnd: '13:30',
+      periodStart: addDays(todayStr, -15),
+      periodEnd: addDays(todayStr, 15),
+      weekends: [0, 6],
+      activeDates: [todayStr],
+      dailyOverrides: {}
+    };
+
+    const el = {
+      email: document.getElementById('email'),
+      password: document.getElementById('password'),
+      registerBtn: document.getElementById('registerBtn'),
+      loginBtn: document.getElementById('loginBtn'),
+      syncBtn: document.getElementById('syncBtn'),
+      logoutBtn: document.getElementById('logoutBtn'),
+      authStatus: document.getElementById('authStatus'),
+      authLoggedOut: document.getElementById('authLoggedOut'),
+      authLoggedIn: document.getElementById('authLoggedIn'),
+      currentUserEmail: document.getElementById('currentUserEmail'),
+
+      rate: document.getElementById('rate'),
+      workStart: document.getElementById('workStart'),
+      workEnd: document.getElementById('workEnd'),
+      breakStart: document.getElementById('breakStart'),
+      breakEnd: document.getElementById('breakEnd'),
+      periodStart: document.getElementById('periodStart'),
+      periodEnd: document.getElementById('periodEnd'),
+      weekendBox: document.getElementById('weekendBox'),
+      saveBtn: document.getElementById('saveBtn'),
+      resetBtn: document.getElementById('resetBtn'),
+      datePickerGrid: document.getElementById('datePickerGrid'),
+      prevMonthBtn: document.getElementById('prevMonthBtn'),
+      nextMonthBtn: document.getElementById('nextMonthBtn'),
+      monthIndicator: document.getElementById('monthIndicator'),
+      todayHours: document.getElementById('todayHours'),
+      todayMoney: document.getElementById('todayMoney'),
+      todayProgress: document.getElementById('todayProgress'),
+      nowText: document.getElementById('nowText'),
+      periodMoneyBig: document.getElementById('periodMoneyBig'),
+      periodMoney: document.getElementById('periodMoney'),
+      periodHours: document.getElementById('periodHours'),
+      periodDays: document.getElementById('periodDays'),
+      avgMoney: document.getElementById('avgMoney'),
+      dailyStandard: document.getElementById('dailyStandard'),
+      timelineBar: document.getElementById('timelineBar'),
+      timelineLabel: document.getElementById('timelineLabel'),
+      bars: document.getElementById('bars'),
+      selectedDateText: document.getElementById('selectedDateText'),
+      selectedDateHint: document.getElementById('selectedDateHint'),
+      dayWorkStart: document.getElementById('dayWorkStart'),
+      dayWorkEnd: document.getElementById('dayWorkEnd'),
+      dayPreview: document.getElementById('dayPreview'),
+      applyDayBtn: document.getElementById('applyDayBtn'),
+      clearDayBtn: document.getElementById('clearDayBtn')
+    };
+
+    let selectedDate = null;
+    let currentSettings = loadLocalCache();
+    let secondTimer = null;
+    let currentUser = null;
+    let visibleMonthIndex = 0;
+
+    function setStatus(text) {
+      el.authStatus.textContent = text || '';
+    }
+
+    function loadLocalCache() {
+      try {
+        const raw = localStorage.getItem(LOCAL_CACHE_KEY);
+        if (!raw) return JSON.parse(JSON.stringify(DEFAULTS));
+        const data = JSON.parse(raw);
+        return {
+          rate: Number(data.rate ?? DEFAULTS.rate),
+          workStart: data.workStart || DEFAULTS.workStart,
+          workEnd: data.workEnd || DEFAULTS.workEnd,
+          breakStart: data.breakStart || DEFAULTS.breakStart,
+          breakEnd: data.breakEnd || DEFAULTS.breakEnd,
+          periodStart: data.periodStart || DEFAULTS.periodStart,
+          periodEnd: data.periodEnd || DEFAULTS.periodEnd,
+          weekends: Array.isArray(data.weekends) ? data.weekends : [...DEFAULTS.weekends],
+          activeDates: Array.isArray(data.activeDates) ? data.activeDates : [...DEFAULTS.activeDates],
+          dailyOverrides: data.dailyOverrides && typeof data.dailyOverrides === 'object' ? data.dailyOverrides : {}
+        };
+      } catch {
+        return JSON.parse(JSON.stringify(DEFAULTS));
+      }
+    }
+
+    function saveLocalCache(cfg) {
+      localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(cfg));
+    }
+
+    async function loadRemoteSettings() {
+      if (!currentUser) return null;
+      const { data, error } = await supabaseClient
+        .from('work_profiles')
+        .select('settings_json')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data?.settings_json || null;
+    }
+
+    async function saveRemoteSettings(cfg) {
+      if (!currentUser) return;
+      const payload = {
+        user_id: currentUser.id,
+        settings_json: cfg,
+        updated_at: new Date().toISOString()
+      };
+
+      const { error } = await supabaseClient
+        .from('work_profiles')
+        .upsert(payload, { onConflict: 'user_id' });
+
+      if (error) throw error;
+    }
+
+    function timeToMinutes(t) {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    }
+
+    function formatMoney(v) {
+      return `¥${v.toFixed(2)}`;
+    }
+
+    function calcHoursBySchedule(workStart, workEnd, breakStart, breakEnd) {
+      if (!workStart || !workEnd) return 0;
+      const ws = timeToMinutes(workStart);
+      const we = timeToMinutes(workEnd);
+      const bs = timeToMinutes(breakStart);
+      const be = timeToMinutes(breakEnd);
+      const total = Math.max(0, we - ws);
+      const overlap = Math.max(0, Math.min(we, be) - Math.max(ws, bs));
+      return Math.max(0, (total - overlap) / 60);
+    }
+
+    function getDailyStandardHours(cfg) {
+      return calcHoursBySchedule(cfg.workStart, cfg.workEnd, cfg.breakStart, cfg.breakEnd);
+    }
+
+    function isOffDay(date, cfg) {
+      return cfg.weekends.includes(date.getDay());
+    }
+
+    function getDateRange(startStr, endStr) {
+      const start = new Date(startStr + 'T00:00:00');
+      const end = new Date(endStr + 'T00:00:00');
+      if (start > end) return [];
+      const arr = [];
+      const cur = new Date(start);
+      while (cur <= end) {
+        arr.push(new Date(cur));
+        cur.setDate(cur.getDate() + 1);
+      }
+      return arr;
+    }
+
+    function getMonthLabelByKey(key) {
+      const [y, m] = key.split('-');
+      return `${y}年${Number(m)}月`;
+    }
+
+    function getMonthListInRange(startStr, endStr) {
+      const start = new Date(startStr + 'T00:00:00');
+      const end = new Date(endStr + 'T00:00:00');
+      if (start > end) return [];
+
+      const result = [];
+      const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+      const endMonth = new Date(end.getFullYear(), end.getMonth(), 1);
+
+      while (cur <= endMonth) {
+        result.push(`${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`);
+        cur.setMonth(cur.getMonth() + 1);
+      }
+      return result;
+    }
+
+    function clampVisibleMonth(cfg) {
+      const months = getMonthListInRange(cfg.periodStart, cfg.periodEnd);
+      if (!months.length) {
+        visibleMonthIndex = 0;
+        return months;
+      }
+
+      if (visibleMonthIndex < 0) visibleMonthIndex = 0;
+      if (visibleMonthIndex >= months.length) visibleMonthIndex = months.length - 1;
+
+      if (selectedDate) {
+        const selectedMonth = selectedDate.slice(0, 7);
+        const idx = months.indexOf(selectedMonth);
+        if (idx !== -1) visibleMonthIndex = idx;
+      }
+
+      return months;
+    }
+
+    function getScheduleForDate(dateKey, cfg) {
+      const override = cfg.dailyOverrides?.[dateKey];
+      return {
+        workStart: override?.workStart || cfg.workStart,
+        workEnd: override?.workEnd || cfg.workEnd,
+        breakStart: cfg.breakStart,
+        breakEnd: cfg.breakEnd
+      };
+    }
+
+    function isActiveWorkDate(date, cfg) {
+      return (cfg.activeDates || []).includes(toDateString(date));
+    }
+
+    function workedMinutesAt(date, cfg) {
+      const key = toDateString(date);
+      if (key < cfg.periodStart || key > cfg.periodEnd) return 0;
+      if (!isActiveWorkDate(date, cfg)) return 0;
+
+      const schedule = getScheduleForDate(key, cfg);
+      const ws = timeToMinutes(schedule.workStart);
+      const we = timeToMinutes(schedule.workEnd);
+      const bs = timeToMinutes(schedule.breakStart);
+      const be = timeToMinutes(schedule.breakEnd);
+      const nowM = date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
+
+      if (nowM <= ws) return 0;
+
+      const clampedNow = Math.min(nowM, we);
+      let worked = Math.max(0, clampedNow - ws);
+      const overlap = Math.max(0, Math.min(clampedNow, be) - Math.max(ws, bs));
+      worked -= overlap;
+      return Math.max(0, worked);
+    }
+
+    function renderWeekendSelector(selected) {
+      el.weekendBox.innerHTML = '';
+      WEEK_NAMES.forEach((name, index) => {
+        const label = document.createElement('label');
+        if (selected.includes(index)) label.classList.add('checked');
+        label.innerHTML = `<input type="checkbox" value="${index}" ${selected.includes(index) ? 'checked' : ''}><span>周${name}</span>`;
+        label.querySelector('input').addEventListener('change', e => {
+          label.classList.toggle('checked', e.target.checked);
+        });
+        el.weekendBox.appendChild(label);
+      });
+    }
+
+    function fillForm(cfg) {
+      el.rate.value = cfg.rate;
+      el.workStart.value = cfg.workStart;
+      el.workEnd.value = cfg.workEnd;
+      el.breakStart.value = cfg.breakStart;
+      el.breakEnd.value = cfg.breakEnd;
+      el.periodStart.value = cfg.periodStart;
+      el.periodEnd.value = cfg.periodEnd;
+      renderWeekendSelector(cfg.weekends);
+    }
+
+    function getFormSettings() {
+      const weekends = [...el.weekendBox.querySelectorAll('input:checked')]
+        .map(i => Number(i.value))
+        .sort((a, b) => a - b);
+
+      return {
+        rate: Math.max(0, Number(el.rate.value || 0)),
+        workStart: el.workStart.value || DEFAULTS.workStart,
+        workEnd: el.workEnd.value || DEFAULTS.workEnd,
+        breakStart: el.breakStart.value || DEFAULTS.breakStart,
+        breakEnd: el.breakEnd.value || DEFAULTS.breakEnd,
+        periodStart: el.periodStart.value || DEFAULTS.periodStart,
+        periodEnd: el.periodEnd.value || DEFAULTS.periodEnd,
+        weekends,
+        activeDates: [...(currentSettings.activeDates || [])],
+        dailyOverrides: { ...(currentSettings.dailyOverrides || {}) }
+      };
+    }
+
+    function refreshSelectedEditor() {
+      if (!selectedDate) {
+        el.selectedDateText.textContent = '未选择日期';
+        el.selectedDateHint.textContent = '先点击上方某个日期';
+        el.dayWorkStart.value = '';
+        el.dayWorkEnd.value = '';
+        el.dayPreview.value = '';
+        return;
+      }
+
+      const ov = currentSettings.dailyOverrides?.[selectedDate];
+      el.selectedDateText.textContent = selectedDate;
+      el.selectedDateHint.textContent = ov ? '当前日期已使用单独时间' : '当前日期使用默认时间';
+      el.dayWorkStart.value = ov?.workStart || currentSettings.workStart;
+      el.dayWorkEnd.value = ov?.workEnd || currentSettings.workEnd;
+      const hours = calcHoursBySchedule(
+        el.dayWorkStart.value,
+        el.dayWorkEnd.value,
+        currentSettings.breakStart,
+        currentSettings.breakEnd
+      );
+      el.dayPreview.value = formatClockHMS(hours);
+    }
+
+    function renderDatePicker(cfg) {
+      el.datePickerGrid.innerHTML = '';
+
+      const months = clampVisibleMonth(cfg);
+      if (!months.length) {
+        el.monthIndicator.textContent = '--';
+        el.prevMonthBtn.disabled = true;
+        el.nextMonthBtn.disabled = true;
+        return;
+      }
+
+      const monthKey = months[visibleMonthIndex];
+      const [year, month] = monthKey.split('-').map(Number);
+
+      el.monthIndicator.textContent = getMonthLabelByKey(monthKey);
+      el.prevMonthBtn.disabled = visibleMonthIndex === 0;
+      el.nextMonthBtn.disabled = visibleMonthIndex === months.length - 1;
+
+      const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+
+      const header = document.createElement('div');
+      header.className = 'workday-header';
+      weekdays.forEach(w => {
+        const span = document.createElement('span');
+        span.textContent = '周' + w;
+        header.appendChild(span);
+      });
+      el.datePickerGrid.appendChild(header);
+
+      const gridContainer = document.createElement('div');
+      gridContainer.className = 'workday-grid';
+      el.datePickerGrid.appendChild(gridContainer);
+
+      const firstDay = new Date(year, month - 1, 1);
+      const lastDay = new Date(year, month, 0);
+      const startWeekday = firstDay.getDay();
+      const daysInMonth = lastDay.getDate();
+
+      for (let i = 0; i < startWeekday; i++) {
+        const empty = document.createElement('div');
+        empty.className = 'date-cell empty';
+        gridContainer.appendChild(empty);
+      }
+
+      for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+        const date = new Date(year, month - 1, dayNum);
+        const key = toDateString(date);
+
+        if (key < cfg.periodStart || key > cfg.periodEnd) continue;
+
+        const active = (cfg.activeDates || []).includes(key);
+        const off = isOffDay(date, cfg);
+        const hasOverride = !!cfg.dailyOverrides?.[key];
+
+        const cell = document.createElement('div');
+        cell.className = `date-cell${active ? ' active' : ''}${off ? ' muted' : ''}${selectedDate === key ? ' selected' : ''}`;
+        cell.innerHTML = `${hasOverride ? '<strong>自</strong>' : ''}<span>${dayNum}</span>${off ? '<em>休</em>' : ''}`;
+        cell.title = key;
+
+        cell.addEventListener('click', () => {
+          if (selectedDate === key) {
+            const set = new Set(currentSettings.activeDates || []);
+            if (set.has(key)) set.delete(key);
+            else set.add(key);
+            currentSettings.activeDates = [...set].sort();
+          }
+          selectedDate = key;
+          saveLocalCache(currentSettings);
+          autoSyncToCloud();
+          renderDatePicker(currentSettings);
+          refreshSelectedEditor();
+          renderStaticView(currentSettings);
+          renderLiveView(currentSettings);
+        });
+
+        gridContainer.appendChild(cell);
+      }
+    }
+
+    function getPeriodStats(now, cfg) {
+      const range = getDateRange(cfg.periodStart, cfg.periodEnd);
+      const todayKey = toDateString(now);
+
+      let totalHours = 0;
+      let totalMoney = 0;
+      let workedDays = 0;
+      const daily = [];
+
+      for (const d0 of range) {
+        const key = toDateString(d0);
+        const active = isActiveWorkDate(d0, cfg);
+        const isFuture = key > todayKey;
+        const isToday = key === todayKey;
+        const schedule = getScheduleForDate(key, cfg);
+        const standardHoursForDay = calcHoursBySchedule(
+          schedule.workStart,
+          schedule.workEnd,
+          schedule.breakStart,
+          schedule.breakEnd
+        );
+
+        let hours = 0;
+        let money = 0;
+
+        if (active && !isFuture) {
+          workedDays += 1;
+          if (isToday) {
+            hours = workedMinutesAt(now, cfg) / 60;
+            money = hours * cfg.rate;
+          } else {
+            hours = standardHoursForDay;
+            money = standardHoursForDay * cfg.rate;
+          }
+        }
+
+        totalHours += hours;
+        totalMoney += money;
+        daily.push({
+          key,
+          day: d0.getDate(),
+          active,
+          isFuture,
+          isToday,
+          money,
+          hours,
+          hasOverride: !!cfg.dailyOverrides?.[key]
+        });
+      }
+
+      return {
+        totalHours,
+        totalMoney,
+        workedDays,
+        avgMoney: workedDays ? totalMoney / workedDays : 0,
+        avgHours: workedDays ? totalHours / workedDays : 0,
+        daily
+      };
+    }
+
+    function renderBars(stats) {
+      el.bars.innerHTML = '';
+      const maxMoney = Math.max(...stats.daily.map(d => d.money), 1);
+
+      stats.daily.forEach(item => {
+        const wrap = document.createElement('div');
+        wrap.className = 'bar-wrap';
+
+        const bar = document.createElement('div');
+        const h = item.money <= 0 ? 4 : Math.max(8, item.money / maxMoney * 220);
+        bar.className = 'bar';
+        if (!item.active || item.isFuture) bar.classList.add('off');
+        if (item.isToday) bar.classList.add('today');
+        bar.style.height = `${h}px`;
+        bar.title = `${item.key}：${formatMoney(item.money)} / ${item.hours.toFixed(2)} 小时${item.hasOverride ? ' / 单独时间' : ''}`;
+
+        const day = document.createElement('div');
+        day.className = 'day';
+        day.textContent = item.day;
+
+        wrap.appendChild(bar);
+        wrap.appendChild(day);
+        el.bars.appendChild(wrap);
+      });
+    }
+
+    function renderStaticView(cfg) {
+      const now = new Date();
+      const stats = getPeriodStats(now, cfg);
+
+      el.periodMoneyBig.textContent = formatMoney(stats.totalMoney);
+      el.periodMoney.textContent = formatMoney(stats.totalMoney);
+      el.periodHours.textContent = stats.totalHours.toFixed(2);
+      el.periodDays.textContent = String(stats.workedDays);
+      el.avgMoney.textContent = formatMoney(stats.avgMoney);
+      el.dailyStandard.textContent = stats.avgHours.toFixed(2);
+
+      renderBars(stats);
+      refreshSelectedEditor();
+    }
+
+    function renderLiveView(cfg) {
+      const now = new Date();
+      const liveTodayStr = toDateString(now);
+      const todayHours = workedMinutesAt(now, cfg) / 60;
+      const todayMoney = todayHours * cfg.rate;
+      const todaySchedule = getScheduleForDate(liveTodayStr, cfg);
+      const todayStandard = calcHoursBySchedule(
+        todaySchedule.workStart,
+        todaySchedule.workEnd,
+        todaySchedule.breakStart,
+        todaySchedule.breakEnd
+      );
+      const progress = todayStandard > 0 ? Math.min(100, todayHours / todayStandard * 100) : 0;
+
+      el.nowText.textContent = formatDateTime(now);
+      el.todayHours.textContent = formatClockHMS(todayHours);
+      el.todayMoney.textContent = formatMoney(todayMoney);
+      el.todayProgress.textContent = `${Math.round(progress)}%`;
+      el.timelineBar.style.width = `${progress}%`;
+      el.timelineLabel.textContent = `${Math.round(progress)}%`;
+    }
+
+    function restartSecondTimer() {
+      if (secondTimer) clearInterval(secondTimer);
+      secondTimer = setInterval(() => {
+        renderLiveView(currentSettings);
+      }, 1000);
+    }
+
+    function updateAuthUI(user) {
+      const loggedIn = !!user;
+      el.authLoggedOut.classList.toggle('hidden', loggedIn);
+      el.authLoggedIn.classList.toggle('hidden', !loggedIn);
+      el.currentUserEmail.value = user?.email || '';
+    }
+
+    async function register() {
+      const email = el.email.value.trim();
+      const password = el.password.value;
+      if (!email || !password) {
+        setStatus('请输入邮箱和密码。');
+        return;
+      }
+      setStatus('注册中...');
+      const { error } = await supabaseClient.auth.signUp({ email, password });
+      if (error) {
+        setStatus(`注册失败：${error.message}`);
+        return;
+      }
+      setStatus('注册成功。若开启邮箱验证，请先去邮箱确认。');
+    }
+
+    async function login() {
+      const email = el.email.value.trim();
+      const password = el.password.value;
+      if (!email || !password) {
+        setStatus('请输入邮箱和密码。');
+        return;
+      }
+      setStatus('登录中...');
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        setStatus(`登录失败：${error.message}`);
+        return;
+      }
+      setStatus('登录成功。');
+    }
+
+    async function logout() {
+      const { error } = await supabaseClient.auth.signOut();
+      if (error) {
+        setStatus(`退出失败：${error.message}`);
+        return;
+      }
+      setStatus('已退出登录。');
+    }
+
+    async function syncToCloud() {
+      if (!currentUser) {
+        setStatus('请先登录。');
+        return;
+      }
+      try {
+        setStatus('同步中...');
+        await saveRemoteSettings(currentSettings);
+        setStatus('已同步到云端。');
+      } catch (err) {
+        setStatus(`同步失败：${err.message}`);
+      }
+    }
+
+    let autoSyncTimer = null;
+    async function autoSyncToCloud() {
+      if (!currentUser) return;
+      if (autoSyncTimer) clearTimeout(autoSyncTimer);
+      autoSyncTimer = setTimeout(async () => {
+        try {
+          await saveRemoteSettings(currentSettings);
+          setStatus('已自动同步');
+          setTimeout(() => setStatus(''), 2000);
+        } catch (err) {
+          setStatus(`自动同步失败：${err.message}`);
+        }
+      }, 800);
+    }
+
+    async function handleSession(user) {
+      currentUser = user || null;
+      updateAuthUI(currentUser);
+
+      if (!currentUser) {
+        currentSettings = loadLocalCache();
+        fillForm(currentSettings);
+        clampVisibleMonth(currentSettings);
+        renderDatePicker(currentSettings);
+        renderStaticView(currentSettings);
+        renderLiveView(currentSettings);
+        restartSecondTimer();
+        return;
+      }
+
+      try {
+        setStatus('正在加载云端数据...');
+        const remote = await loadRemoteSettings();
+        if (remote) {
+          currentSettings = {
+            ...JSON.parse(JSON.stringify(DEFAULTS)),
+            ...remote,
+            weekends: Array.isArray(remote.weekends) ? remote.weekends : [...DEFAULTS.weekends],
+            activeDates: Array.isArray(remote.activeDates) ? remote.activeDates : [...DEFAULTS.activeDates],
+            dailyOverrides: remote.dailyOverrides && typeof remote.dailyOverrides === 'object' ? remote.dailyOverrides : {}
+          };
+          saveLocalCache(currentSettings);
+          setStatus('已加载云端数据。');
+        } else {
+          await saveRemoteSettings(currentSettings);
+          setStatus('首次登录，已将本地数据上传到云端。');
+        }
+      } catch (err) {
+        setStatus(`云端加载失败，已使用本地缓存：${err.message}`);
+      }
+
+      fillForm(currentSettings);
+      clampVisibleMonth(currentSettings);
+      renderDatePicker(currentSettings);
+      renderStaticView(currentSettings);
+      renderLiveView(currentSettings);
+      restartSecondTimer();
+    }
+
+    el.dayWorkStart.addEventListener('input', () => {
+      const hours = calcHoursBySchedule(
+        el.dayWorkStart.value,
+        el.dayWorkEnd.value,
+        currentSettings.breakStart,
+        currentSettings.breakEnd
+      );
+      el.dayPreview.value = formatClockHMS(hours);
+    });
+
+    el.dayWorkEnd.addEventListener('input', () => {
+      const hours = calcHoursBySchedule(
+        el.dayWorkStart.value,
+        el.dayWorkEnd.value,
+        currentSettings.breakStart,
+        currentSettings.breakEnd
+      );
+      el.dayPreview.value = formatClockHMS(hours);
+    });
+
+    el.applyDayBtn.addEventListener('click', async () => {
+      if (!selectedDate) {
+        alert('请先选择一个日期');
+        return;
+      }
+
+      const ws = el.dayWorkStart.value;
+      const we = el.dayWorkEnd.value;
+
+      if (!ws || !we) {
+        alert('请先填写上班和下班时间');
+        return;
+      }
+
+      if (timeToMinutes(we) <= timeToMinutes(ws)) {
+        alert('下班时间必须晚于上班时间');
+        return;
+      }
+
+      if (!(currentSettings.activeDates || []).includes(selectedDate)) {
+        currentSettings.activeDates = [...new Set([...(currentSettings.activeDates || []), selectedDate])].sort();
+      }
+
+      currentSettings.dailyOverrides = currentSettings.dailyOverrides || {};
+      currentSettings.dailyOverrides[selectedDate] = { workStart: ws, workEnd: we };
+
+      saveLocalCache(currentSettings);
+      autoSyncToCloud();
+      renderDatePicker(currentSettings);
+      renderStaticView(currentSettings);
+      renderLiveView(currentSettings);
+    });
+
+    el.clearDayBtn.addEventListener('click', async () => {
+      if (!selectedDate) {
+        alert('请先选择一个日期');
+        return;
+      }
+
+      if (currentSettings.dailyOverrides?.[selectedDate]) {
+        delete currentSettings.dailyOverrides[selectedDate];
+      }
+
+      saveLocalCache(currentSettings);
+      autoSyncToCloud();
+      renderDatePicker(currentSettings);
+      renderStaticView(currentSettings);
+      renderLiveView(currentSettings);
+    });
+
+    el.saveBtn.addEventListener('click', async () => {
+      const next = getFormSettings();
+
+      if (next.periodStart > next.periodEnd) {
+        alert('结束日期不能早于开始日期');
+        return;
+      }
+
+      currentSettings = next;
+
+      if (selectedDate && (selectedDate < currentSettings.periodStart || selectedDate > currentSettings.periodEnd)) {
+        selectedDate = null;
+      }
+
+      clampVisibleMonth(currentSettings);
+
+      saveLocalCache(currentSettings);
+      autoSyncToCloud();
+      renderDatePicker(currentSettings);
+      renderStaticView(currentSettings);
+      renderLiveView(currentSettings);
+      restartSecondTimer();
+
+      el.saveBtn.textContent = '已保存';
+      setTimeout(() => el.saveBtn.textContent = '保存设置', 1200);
+    });
+
+    el.resetBtn.addEventListener('click', async () => {
+      currentSettings = JSON.parse(JSON.stringify(DEFAULTS));
+      selectedDate = null;
+      visibleMonthIndex = 0;
+      fillForm(currentSettings);
+      clampVisibleMonth(currentSettings);
+      renderDatePicker(currentSettings);
+      saveLocalCache(currentSettings);
+      autoSyncToCloud();
+      renderStaticView(currentSettings);
+      renderLiveView(currentSettings);
+      restartSecondTimer();
+    });
+
+    el.registerBtn.addEventListener('click', register);
+    el.loginBtn.addEventListener('click', login);
+    el.logoutBtn.addEventListener('click', logout);
+    el.syncBtn.addEventListener('click', syncToCloud);
+
+    el.prevMonthBtn.addEventListener('click', () => {
+      const months = getMonthListInRange(currentSettings.periodStart, currentSettings.periodEnd);
+      if (!months.length) return;
+      visibleMonthIndex = Math.max(0, visibleMonthIndex - 1);
+      renderDatePicker(currentSettings);
+    });
+
+    el.nextMonthBtn.addEventListener('click', () => {
+      const months = getMonthListInRange(currentSettings.periodStart, currentSettings.periodEnd);
+      if (!months.length) return;
+      visibleMonthIndex = Math.min(months.length - 1, visibleMonthIndex + 1);
+      renderDatePicker(currentSettings);
+    });
+
+    async function init() {
+      fillForm(currentSettings);
+      clampVisibleMonth(currentSettings);
+      renderDatePicker(currentSettings);
+      renderStaticView(currentSettings);
+      renderLiveView(currentSettings);
+      restartSecondTimer();
+
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      await handleSession(session?.user || null);
+
+      supabaseClient.auth.onAuthStateChange(async (_event, session) => {
+        await handleSession(session?.user || null);
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
