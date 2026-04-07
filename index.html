@@ -107,6 +107,13 @@
       gap: 12px;
     }
 
+    .grid2-auto {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
     .grid3 {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -355,7 +362,7 @@
 
     .cards {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
       gap: 16px;
       width: 100%;
       overflow: hidden;
@@ -364,6 +371,13 @@
     .card {
       padding: 20px;
       overflow: hidden;
+    }
+
+    .card.accent {
+      background:
+        linear-gradient(180deg, rgba(43, 111, 255, 0.12), rgba(43, 111, 255, 0.04)),
+        var(--card);
+      border-color: rgba(86, 135, 255, 0.28);
     }
 
     .card .k {
@@ -700,6 +714,7 @@
 
       .cards,
       .grid2,
+      .grid2-auto,
       .grid3,
       .kv,
       .actions,
@@ -814,6 +829,10 @@
             <input id="periodEnd" type="date" />
           </div>
         </div>
+        <div class="grid2-auto">
+          <button class="secondary" id="prevPeriodBtn" type="button">上一月</button>
+          <button class="secondary" id="nextPeriodBtn" type="button">下一月</button>
+        </div>
       </div>
 
       <div class="group">
@@ -848,7 +867,7 @@
           <div>
             <div class="clock" id="nowText">--</div>
             <div class="money-now" id="periodMoneyBig">¥0.00</div>
-            <div class="subbig" style="margin:10px 0 0; font-size:14px;">当前周期累计收入</div>
+            <div class="subbig" id="periodMoneyBigLabel" style="margin:10px 0 0; font-size:14px;">当前周期累计收入</div>
           </div>
           <div>
             <div class="timeline">
@@ -864,9 +883,14 @@
 
       <section class="cards">
         <div class="card">
-          <div class="k">当前周期收入</div>
+          <div class="k" id="periodMoneyLabel">当前周期收入</div>
           <div class="v" id="periodMoney">¥0.00</div>
-          <div class="s">只统计你在当前周期内勾选的上班日期</div>
+          <div class="s" id="periodMoneyDesc">只统计你在当前周期内勾选且已到达的上班日期</div>
+        </div>
+        <div class="card accent">
+          <div class="k">该周期预计收入</div>
+          <div class="v" id="periodProjectedMoney">¥0.00</div>
+          <div class="s">已包含当前周期内已勾选但尚未到达的上班日期预计收入</div>
         </div>
         <div class="card">
           <div class="k">当前周期总工时</div>
@@ -1039,6 +1063,8 @@
       breakEnd: document.getElementById('breakEnd'),
       periodStart: document.getElementById('periodStart'),
       periodEnd: document.getElementById('periodEnd'),
+      prevPeriodBtn: document.getElementById('prevPeriodBtn'),
+      nextPeriodBtn: document.getElementById('nextPeriodBtn'),
       weekendBox: document.getElementById('weekendBox'),
       saveBtn: document.getElementById('saveBtn'),
       resetBtn: document.getElementById('resetBtn'),
@@ -1051,7 +1077,11 @@
       todayProgress: document.getElementById('todayProgress'),
       nowText: document.getElementById('nowText'),
       periodMoneyBig: document.getElementById('periodMoneyBig'),
+      periodMoneyBigLabel: document.getElementById('periodMoneyBigLabel'),
+      periodMoneyLabel: document.getElementById('periodMoneyLabel'),
+      periodMoneyDesc: document.getElementById('periodMoneyDesc'),
       periodMoney: document.getElementById('periodMoney'),
+      periodProjectedMoney: document.getElementById('periodProjectedMoney'),
       periodHours: document.getElementById('periodHours'),
       periodDays: document.getElementById('periodDays'),
       avgMoney: document.getElementById('avgMoney'),
@@ -1175,6 +1205,17 @@
     function getMonthLabelByKey(key) {
       const [y, m] = key.split('-');
       return `${y}年${Number(m)}月`;
+    }
+
+    function getMonthBounds(baseDate, offsetMonths = 0) {
+      const year = baseDate.getFullYear();
+      const month = baseDate.getMonth() + offsetMonths;
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0);
+      return {
+        start: toDateString(start),
+        end: toDateString(end)
+      };
     }
 
     function getMonthListInRange(startStr, endStr) {
@@ -1399,6 +1440,8 @@
 
       let totalHours = 0;
       let totalMoney = 0;
+      let projectedMoney = 0;
+      let projectedDays = 0;
       let workedDays = 0;
       const daily = [];
 
@@ -1417,6 +1460,8 @@
 
         let hours = 0;
         let money = 0;
+        let projectedHours = 0;
+        let projectedDayMoney = 0;
 
         if (active && !isFuture) {
           workedDays += 1;
@@ -1429,8 +1474,15 @@
           }
         }
 
+        if (active) {
+          projectedDays += 1;
+          projectedHours = isFuture ? standardHoursForDay : hours;
+          projectedDayMoney = isFuture ? standardHoursForDay * cfg.rate : money;
+        }
+
         totalHours += hours;
         totalMoney += money;
+        projectedMoney += projectedDayMoney;
         daily.push({
           key,
           day: d0.getDate(),
@@ -1438,6 +1490,8 @@
           isFuture,
           isToday,
           money,
+          projectedHours,
+          projectedMoney: projectedDayMoney,
           hours,
           hasOverride: !!cfg.dailyOverrides?.[key]
         });
@@ -1446,7 +1500,10 @@
       return {
         totalHours,
         totalMoney,
+        projectedMoney,
         workedDays,
+        projectedDays,
+        hasProjectedIncome: projectedDays > workedDays,
         avgMoney: workedDays ? totalMoney / workedDays : 0,
         avgHours: workedDays ? totalHours / workedDays : 0,
         daily
@@ -1455,19 +1512,21 @@
 
     function renderBars(stats) {
       el.bars.innerHTML = '';
-      const maxMoney = Math.max(...stats.daily.map(d => d.money), 1);
+      const maxMoney = Math.max(...stats.daily.map(d => d.projectedMoney), 1);
 
       stats.daily.forEach(item => {
         const wrap = document.createElement('div');
         wrap.className = 'bar-wrap';
 
         const bar = document.createElement('div');
-        const h = item.money <= 0 ? 4 : Math.max(8, item.money / maxMoney * 220);
+        const barMoney = item.projectedMoney;
+        const h = barMoney <= 0 ? 4 : Math.max(8, barMoney / maxMoney * 220);
         bar.className = 'bar';
         if (!item.active || item.isFuture) bar.classList.add('off');
         if (item.isToday) bar.classList.add('today');
         bar.style.height = `${h}px`;
-        bar.title = `${item.key}：${formatMoney(item.money)} / ${item.hours.toFixed(2)} 小时${item.hasOverride ? ' / 单独时间' : ''}`;
+        const barHours = item.isFuture ? item.projectedHours : item.hours;
+        bar.title = `${item.key}：${formatMoney(barMoney)}${item.isFuture ? '（预计）' : ''} / ${barHours.toFixed(2)} 小时${item.hasOverride ? ' / 单独时间' : ''}`;
 
         const day = document.createElement('div');
         day.className = 'day';
@@ -1479,17 +1538,24 @@
       });
     }
 
-    function renderStaticView(cfg) {
-      const now = new Date();
-      const stats = getPeriodStats(now, cfg);
-
+    function updateSummary(stats) {
       el.periodMoneyBig.textContent = formatMoney(stats.totalMoney);
+      el.periodMoneyBigLabel.textContent = '当前周期累计收入';
       el.periodMoney.textContent = formatMoney(stats.totalMoney);
+      el.periodMoneyLabel.textContent = '当前周期收入';
+      el.periodMoneyDesc.textContent = '只统计你在当前周期内勾选且已到达的上班日期';
+      el.periodProjectedMoney.textContent = formatMoney(stats.projectedMoney);
       el.periodHours.textContent = stats.totalHours.toFixed(2);
       el.periodDays.textContent = String(stats.workedDays);
       el.avgMoney.textContent = formatMoney(stats.avgMoney);
       el.dailyStandard.textContent = stats.avgHours.toFixed(2);
+    }
 
+    function renderStaticView(cfg) {
+      const now = new Date();
+      const stats = getPeriodStats(now, cfg);
+
+      updateSummary(stats);
       renderBars(stats);
       refreshSelectedEditor();
     }
@@ -1519,8 +1585,34 @@
     function restartSecondTimer() {
       if (secondTimer) clearInterval(secondTimer);
       secondTimer = setInterval(() => {
+        updateSummary(getPeriodStats(new Date(), currentSettings));
         renderLiveView(currentSettings);
       }, 1000);
+    }
+
+    function applyPeriodShortcut(offsetMonths) {
+      const baseDate = el.periodStart.value
+        ? new Date(el.periodStart.value + 'T00:00:00')
+        : new Date();
+      const { start, end } = getMonthBounds(baseDate, offsetMonths);
+      el.periodStart.value = start;
+      el.periodEnd.value = end;
+
+      const next = getFormSettings();
+      currentSettings = next;
+
+      if (selectedDate && (selectedDate < currentSettings.periodStart || selectedDate > currentSettings.periodEnd)) {
+        selectedDate = null;
+      }
+
+      visibleMonthIndex = 0;
+      clampVisibleMonth(currentSettings);
+      saveLocalCache(currentSettings);
+      autoSyncToCloud();
+      renderDatePicker(currentSettings);
+      renderStaticView(currentSettings);
+      renderLiveView(currentSettings);
+      restartSecondTimer();
     }
 
     function updateAuthUI(user) {
@@ -1772,6 +1864,14 @@
       if (!months.length) return;
       visibleMonthIndex = Math.min(months.length - 1, visibleMonthIndex + 1);
       renderDatePicker(currentSettings);
+    });
+
+    el.prevPeriodBtn.addEventListener('click', () => {
+      applyPeriodShortcut(-1);
+    });
+
+    el.nextPeriodBtn.addEventListener('click', () => {
+      applyPeriodShortcut(1);
     });
 
     async function init() {
