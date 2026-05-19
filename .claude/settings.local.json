@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(gh api *)",
-      "Bash(awk '/<style>/,/<\\\\/style>/' \"D:/ESP32_VS_Project/worktimecounter/index.html\")"
+      "Bash(awk '/<style>/,/<\\\\/style>/' \"D:/ESP32_VS_Project/worktimecounter/index.html\")",
+      "Bash(git restore *)",
+      "Bash(git show *)",
+      "Read(//tmp/**)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ]
   }
 }
