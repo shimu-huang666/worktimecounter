@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh api *)",
+      "Bash(awk '/<style>/,/<\\\\/style>/' \"D:/ESP32_VS_Project/worktimecounter/index.html\")"
+    ]
+  }
+}
