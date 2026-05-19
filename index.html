@@ -180,7 +180,7 @@
       border: 1px solid var(--line);
       outline: none;
       border-radius: 14px;
-      background: rgba(255,255,255,0.02);
+      background: rgba(0, 240, 255, 0.02);
       color: var(--text);
       font-size: 14px;
       transition: all .22s ease;
@@ -206,9 +206,9 @@
       justify-content: center;
       min-height: 40px;
       border-radius: 12px;
-      background: rgba(255,255,255,0.02);
+      background: rgba(0, 240, 255, 0.02);
       border: 1px solid var(--line);
-      color: #d4ddec;
+      color: var(--text);
       cursor: pointer;
       font-size: 13px;
       user-select: none;
@@ -220,7 +220,7 @@
       background: rgba(0, 240, 255, 0.18);
       color: #fff;
       border-color: rgba(0, 240, 255, 0.52);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+      box-shadow: inset 0 0 0 1px rgba(0, 240, 255, 0.04);
     }
 
     .actions, .auth-actions {
@@ -264,7 +264,7 @@
 
     .secondary {
       background: rgba(0, 240, 255, 0.03);
-      color: #e8edf7;
+      color: var(--text);
       border-color: rgba(0, 240, 255, 0.12);
     }
 
@@ -293,10 +293,10 @@
       align-items: center;
       gap: 8px;
       font-size: 12px;
-      color: #b8c3d8;
+      color: var(--muted);
       padding: 8px 12px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.04);
+      background: rgba(0, 240, 255, 0.04);
       border: 1px solid var(--line);
       margin-bottom: 14px;
     }
@@ -310,7 +310,7 @@
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(--font-mono);
       overflow: hidden;
       text-overflow: ellipsis;
     }
@@ -329,7 +329,7 @@
     }
 
     .mini {
-      background: rgba(255,255,255,0.02);
+      background: rgba(0, 240, 255, 0.02);
       border: 1px solid var(--line);
       border-radius: 18px;
       padding: 16px;
@@ -351,11 +351,11 @@
       text-overflow: ellipsis;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(--font-mono);
     }
 
     .hero-right {
-      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+      background: linear-gradient(180deg, rgba(0, 240, 255, 0.03), rgba(0, 240, 255, 0.02));
       border: 1px solid var(--line);
       border-radius: 22px;
       padding: 18px;
@@ -375,7 +375,7 @@
       text-overflow: ellipsis;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(--font-mono);
     }
 
     .money-now {
@@ -388,7 +388,7 @@
       text-overflow: ellipsis;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(--font-mono);
     }
 
     .timeline {
@@ -453,12 +453,12 @@
       text-overflow: ellipsis;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(--font-mono);
     }
 
     .card .s {
       font-size: 12px;
-      color: #7f8a9b;
+      color: var(--muted);
       line-height: 1.6;
     }
 
@@ -494,7 +494,7 @@
     .calendar-top { align-items: center; }
 
     .month-card {
-      background: linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));
+      background: linear-gradient(180deg, rgba(0, 240, 255, 0.015), rgba(0, 240, 255, 0.01));
       border: 1px solid var(--line);
       border-radius: 22px;
       padding: 18px;
@@ -517,14 +517,14 @@
       text-align: center;
       padding: 10px 14px;
       border-radius: 14px;
-      background: rgba(255,255,255,0.03);
+      background: rgba(0, 240, 255, 0.03);
       border: 1px solid var(--line);
       font-weight: 700;
       font-size: 14px;
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(--font-mono);
     }
 
     .workday-calendar {
@@ -556,15 +556,15 @@
       font-weight: 700;
       padding: 8px 0;
       border-radius: 12px;
-      background: rgba(255,255,255,0.025);
+      background: rgba(0, 240, 255, 0.025);
     }
 
     .date-cell {
       min-height: 72px;
       width: 100%;
       border-radius: 18px;
-      border: 1px solid rgba(255,255,255,0.04);
-      background: rgba(255,255,255,0.01);
+      border: 1px solid rgba(0, 240, 255, 0.04);
+      background: rgba(0, 240, 255, 0.01);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -578,22 +578,22 @@
 
     .date-cell:hover {
       transform: translateY(-2px);
-      border-color: rgba(255,255,255,0.09);
+      border-color: rgba(0, 240, 255, 0.09);
     }
 
     .date-cell.active {
-      background: rgba(32,74,163,0.36);
+      background: rgba(0, 240, 255, 0.18);
       color: #fff;
-      border-color: rgba(94,145,255,0.46);
-      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+      border-color: rgba(0, 240, 255, 0.46);
+      box-shadow: inset 0 0 0 1px rgba(0, 240, 255, 0.04);
     }
 
     .date-cell.muted { opacity: .55; }
 
     .date-cell.selected {
       box-shadow:
-        0 0 0 2px rgba(114,158,255,0.34),
-        inset 0 0 0 1px rgba(255,255,255,0.04);
+        0 0 0 2px rgba(0, 240, 255, 0.34),
+        inset 0 0 0 1px rgba(0, 240, 255, 0.04);
     }
 
     .date-cell.empty {
@@ -620,7 +620,7 @@
     }
 
     .day-editor {
-      background: rgba(255,255,255,0.015);
+      background: rgba(0, 240, 255, 0.015);
       border: 1px solid var(--line);
       border-radius: 18px;
       padding: 16px;
@@ -643,18 +643,18 @@
       gap: 6px;
       padding: 6px 10px;
       border-radius: 999px;
-      background: rgba(255,255,255,0.04);
-      color: #d3dcee;
+      background: rgba(0, 240, 255, 0.04);
+      color: var(--text);
       font-size: 12px;
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
       font-feature-settings: "tnum";
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-family: var(--font-mono);
     }
 
     .tiny {
       font-size: 12px;
-      color: #7f8a9b;
+      color: var(--muted);
     }
 
     .editor-actions {
@@ -714,7 +714,7 @@
 
     .day {
       font-size: 11px;
-      color: #8d98aa;
+      color: var(--muted);
     }
 
     .legend {
@@ -737,7 +737,7 @@
 
     .footer-note {
       text-align: center;
-      color: #7f8a9b;
+      color: var(--muted);
       font-size: 12px;
       padding-bottom: 10px;
     }
@@ -1038,9 +1038,9 @@
         </div>
 
         <div class="legend">
-          <span><span class="dot" style="background:#9bb6ff"></span>已选上班日</span>
-          <span><span class="dot" style="background:rgba(255,255,255,0.16)"></span>未选 / 未来</span>
-          <span><span class="dot" style="background:#d7e1ff"></span>今日</span>
+          <span><span class="dot" style="background:var(--cyan)"></span>已选上班日</span>
+          <span><span class="dot" style="background:rgba(0, 240, 255, 0.16)"></span>未选 / 未来</span>
+          <span><span class="dot" style="background:var(--pink)"></span>今日</span>
         </div>
       </section>
 
